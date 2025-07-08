@@ -5,7 +5,7 @@ from PIL import Image
 import tempfile
 
 # Load your OpenAI key securely
-openai.api_key = st.secrets["OPENAI_API_KEY"]  # Store this in Streamlit secrets
+client = openai.OpenAI()  # new OpenAI client object
 ocr_api_key = st.secrets["OCR_API_KEY"]        # Store your OCR.space API key here too
 
 # ----------- Step 1: Extract Text from Screenshot via OCR.space API -----------
@@ -19,7 +19,7 @@ def extract_text_from_screenshot(image):
                 data={'apikey': ocr_api_key, 'language': 'eng'}
             )
     result = r.json()
-    st.write(result)  # Temporarily output full OCR API response
+    st.write(result)  # Debug: Show full OCR response
     text = result['ParsedResults'][0]['ParsedText'] if 'ParsedResults' in result else "OCR failed."
     return text
 
@@ -40,20 +40,17 @@ Chat History:
 Suggestion:
 """
 
-client = openai.OpenAI()  # New-style client
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are a witty and helpful dating conversation assistant."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=300
+    )
 
-response = client.chat.completions.create(
-    model="gpt-4o",
-    messages=[
-        {"role": "system", "content": "You are a witty and helpful dating conversation assistant."},
-        {"role": "user", "content": prompt}
-    ],
-    temperature=0.7,
-    max_tokens=300
-)
-
-return response.choices[0].message.content
-
+    return response.choices[0].message.content
 
 # ----------- Streamlit App -----------
 st.set_page_config(page_title="Dating Chat Assistant", layout="centered")
