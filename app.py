@@ -19,6 +19,7 @@ def extract_text_from_screenshot(image):
                 data={'apikey': ocr_api_key, 'language': 'eng'}
             )
     result = r.json()
+    st.write(result)  # Temporarily output full OCR API response
     text = result['ParsedResults'][0]['ParsedText'] if 'ParsedResults' in result else "OCR failed."
     return text
 
@@ -39,17 +40,20 @@ Chat History:
 Suggestion:
 """
 
-    response = openai.ChatCompletion.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": "You are a witty and helpful dating conversation assistant."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.7,
-        max_tokens=300
-    )
+client = openai.OpenAI()  # New-style client
 
-    return response['choices'][0]['message']['content']
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[
+        {"role": "system", "content": "You are a witty and helpful dating conversation assistant."},
+        {"role": "user", "content": prompt}
+    ],
+    temperature=0.7,
+    max_tokens=300
+)
+
+return response.choices[0].message.content
+
 
 # ----------- Streamlit App -----------
 st.set_page_config(page_title="Dating Chat Assistant", layout="centered")
