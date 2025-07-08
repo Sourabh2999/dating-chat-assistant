@@ -1,0 +1,77 @@
+import streamlit as st
+import openai
+import pytesseract
+from PIL import Image
+import tempfile
+
+# Load your OpenAI key
+openai.api_key = "YOUR_OPENAI_API_KEY"  # Replace with secure storage in production
+
+# ----------- Step 1: Extract Text from Screenshot -----------
+def extract_text_from_screenshot(image):
+    text = pytesseract.image_to_string(image)
+    return text
+
+# ----------- Step 2: Clean and Format the Chat Text -----------
+def clean_chat_text(raw_text):
+    lines = raw_text.split('\n')
+    cleaned = [line.strip() for line in lines if line.strip() and len(line) > 2]
+    return "\n".join(cleaned)
+
+# ----------- Step 3: Generate Response via GPT -----------
+def generate_response(chat_history, goal="flirty but respectful"):
+    prompt = f"""
+You are an AI assistant helping a user engage in an ongoing dating app conversation. Based on the chat history below, suggest 1 best context-aware next line the user can send. Match the user's intent which is: {goal}.
+
+Chat History:
+{chat_history}
+
+Suggestion:
+"""
+
+    response = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are a witty and helpful dating conversation assistant."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=300
+    )
+
+    return response['choices'][0]['message']['content']
+
+# ----------- Streamlit App -----------
+st.set_page_config(page_title="Dating Chat Assistant", layout="centered")
+st.title("💬 Dating Chat Assistant")
+
+st.markdown("Upload a screenshot of your dating app chat and get the perfect next line!")
+
+uploaded_file = st.file_uploader("Upload Chat Screenshot", type=["png", "jpg", "jpeg"])
+
+intent = st.selectbox("What is your goal for this chat?", [
+    "funny and warm",
+    "flirty but respectful",
+    "genuine and serious",
+    "casual and witty",
+    "friendly and polite"
+])
+
+if uploaded_file is not None:
+    image = Image.open(uploaded_file)
+    st.image(image, caption="Uploaded Chat Screenshot", use_column_width=True)
+
+    with st.spinner("Extracting chat and generating suggestion..."):
+        raw_text = extract_text_from_screenshot(image)
+        formatted_text = clean_chat_text(raw_text)
+
+        st.subheader("📝 Extracted Chat History")
+        st.text(formatted_text)
+
+        suggestion = generate_response(formatted_text, goal=intent)
+
+        st.subheader("💡 Suggested Next Line")
+        st.markdown(f"**{suggestion.strip()}**")
+
+st.markdown("---")
+st.caption("Made with ❤️ using GPT-4 and Streamlit")
