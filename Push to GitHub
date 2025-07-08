@@ -1,3 +1,5 @@
-git add .
-git commit -m "Initial Streamlit AI Dating Assistant"
-git push origin main
+git init
+git remote add origin https://github.com/your-username/dating-chat-assistant.git
+git add app.py requirements.txt
+git commit -m "Initial Streamlit OCR Dating Assistant"
+git push -u origin main
