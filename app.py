@@ -58,16 +58,17 @@ if st.session_state.step == 1:
         user_city = st.text_input("Your City")
         user_goal = st.text_input("What are you looking for?")
         submitted_user = st.form_submit_button("Continue")
-        if submitted_user:
-            st.session_state.user_profile = {
-                "name": user_name,
-                "age": user_age,
-                "profession": user_profession,
-                "city": user_city,
-                "looking_for": user_goal
-            }
-            st.session_state.step = 2
-            st.experimental_rerun()
+
+    if submitted_user:
+        st.session_state.user_profile = {
+            "name": user_name,
+            "age": user_age,
+            "profession": user_profession,
+            "city": user_city,
+            "looking_for": user_goal
+        }
+        st.session_state.step = 2
+        st.rerun()
 
 # Step 2: Match Info
 elif st.session_state.step == 2:
@@ -79,16 +80,17 @@ elif st.session_state.step == 2:
         match_city = st.text_input("Match's City")
         match_goal = st.text_input("What is your match looking for?")
         submitted_match = st.form_submit_button("Continue")
-        if submitted_match:
-            st.session_state.match_profile = {
-                "name": match_name,
-                "age": match_age,
-                "profession": match_profession,
-                "city": match_city,
-                "looking_for": match_goal
-            }
-            st.session_state.step = 3
-            st.experimental_rerun()
+
+    if submitted_match:
+        st.session_state.match_profile = {
+            "name": match_name,
+            "age": match_age,
+            "profession": match_profession,
+            "city": match_city,
+            "looking_for": match_goal
+        }
+        st.session_state.step = 3
+        st.rerun()
 
 # Step 3: Chat Goal
 elif st.session_state.step == 3:
@@ -103,15 +105,15 @@ elif st.session_state.step == 3:
     if st.button("Continue"):
         st.session_state.intent = intent
         st.session_state.step = 4
-        st.experimental_rerun()
+        st.rerun()
 
 # Step 4: Chat History
 elif st.session_state.step == 4:
     st.markdown("### Step 4: Paste your ongoing chat")
     chat_input = st.text_area("Paste the most recent messages (including your replies if any):", height=200)
     if chat_input:
-        st.session_state.chat_history = clean_chat_text(chat_input)
         if st.button("Generate Response"):
+            st.session_state.chat_history = clean_chat_text(chat_input)
             suggestion = generate_response(
                 st.session_state.user_profile,
                 st.session_state.match_profile,
@@ -120,7 +122,7 @@ elif st.session_state.step == 4:
             )
             st.session_state.suggestion = suggestion
             st.session_state.step = 5
-            st.experimental_rerun()
+            st.rerun()
 
 # Step 5: Show Result
 elif st.session_state.step == 5:
