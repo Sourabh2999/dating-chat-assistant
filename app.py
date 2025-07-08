@@ -19,7 +19,8 @@ def extract_text_from_screenshot(image):
                 data={'apikey': ocr_api_key, 'language': 'eng'}
             )
     result = r.json()
-    return result['ParsedResults'][0]['ParsedText'] if 'ParsedResults' in result else "OCR failed."
+    text = result['ParsedResults'][0]['ParsedText'] if 'ParsedResults' in result else "OCR failed."
+    return text
 
 # ----------- Step 2: Clean and Format the Chat Text -----------
 def clean_chat_text(raw_text):
