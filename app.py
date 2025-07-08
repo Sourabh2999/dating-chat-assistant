@@ -11,8 +11,8 @@ ocr_api_key = st.secrets["OCR_API_KEY"]        # Store your OCR.space API key he
 
 # ----------- Step 1: Extract Text from Screenshot via OCR.space API -----------
 def extract_text_from_screenshot(image):
-    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
-        image.save(tmp_file.name)
+    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
+        image.convert("RGB").save(tmp_file.name, format='JPEG', quality=80)
         with open(tmp_file.name, 'rb') as f:
             try:
                 r = requests.post(
