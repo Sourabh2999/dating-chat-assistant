@@ -1,5 +1,6 @@
 import streamlit as st
 import openai
+from openai import RateLimitError
 
 # Load your OpenAI key securely
 client = openai.OpenAI()  # new OpenAI client object
@@ -29,17 +30,20 @@ Chat History:
 Based on all the context above, suggest the user's best next line:
 """
 
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": f"You are a dating assistant who helps users craft {goal} replies in dating app conversations."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.7,
-        max_tokens=300
-    )
-
-    return response.choices[0].message.content
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": f"You are a dating assistant who helps users craft {goal} replies in dating app conversations."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=300
+        )
+        return response.choices[0].message.content
+    except RateLimitError:
+        st.error("OpenAI API rate limit reached. Please wait a few seconds and try again.")
+        return None
 
 # ----------- Streamlit App -----------
 st.set_page_config(page_title="Dating Chat Assistant", layout="centered")
@@ -120,9 +124,10 @@ elif st.session_state.step == 4:
                 st.session_state.intent,
                 st.session_state.chat_history
             )
-            st.session_state.suggestion = suggestion
-            st.session_state.step = 5
-            st.rerun()
+            if suggestion:
+                st.session_state.suggestion = suggestion
+                st.session_state.step = 5
+                st.rerun()
 
 # Step 5: Show Result
 elif st.session_state.step == 5:
