@@ -3,6 +3,7 @@ import openai
 import requests
 from PIL import Image
 import tempfile
+import json
 
 # Load your OpenAI key securely
 client = openai.OpenAI()  # new OpenAI client object
@@ -13,15 +14,19 @@ def extract_text_from_screenshot(image):
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
         image.save(tmp_file.name)
         with open(tmp_file.name, 'rb') as f:
-            r = requests.post(
-                'https://api.ocr.space/parse/image',
-                files={'filename': f},
-                data={'apikey': ocr_api_key, 'language': 'eng'}
-            )
-    result = r.json()
-    st.write(result)  # Debug: Show full OCR response
-    text = result['ParsedResults'][0]['ParsedText'] if 'ParsedResults' in result else "OCR failed."
-    return text
+            try:
+                r = requests.post(
+                    'https://api.ocr.space/parse/image',
+                    files={'filename': f},
+                    data={'apikey': ocr_api_key, 'language': 'eng'}
+                )
+                result = r.json()
+                st.write(result)  # Debug: Show full OCR response
+                text = result['ParsedResults'][0]['ParsedText'] if 'ParsedResults' in result else "OCR failed."
+            except (json.JSONDecodeError, requests.exceptions.RequestException) as e:
+                st.error("OCR request failed or returned invalid JSON.")
+                st.stop()
+            return text
 
 # ----------- Step 2: Clean and Format the Chat Text -----------
 def clean_chat_text(raw_text):
