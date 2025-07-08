@@ -1,52 +1,32 @@
 import streamlit as st
 import openai
-import requests
-from PIL import Image
-import tempfile
-import json
 
 # Load your OpenAI key securely
 client = openai.OpenAI()  # new OpenAI client object
-ocr_api_key = st.secrets["OCR_API_KEY"]        # Store your OCR.space API key here too
 
-# ----------- Step 1: Extract Text from Screenshot via OCR.space API -----------
-def extract_text_from_screenshot(image):
-    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
-        image.convert("RGB").save(tmp_file.name, format='JPEG', quality=80)
-        with open(tmp_file.name, 'rb') as f:
-            try:
-                r = requests.post(
-                    'https://api.ocr.space/parse/image',
-                    files={'filename': f},
-                    data={'apikey': ocr_api_key, 'language': 'eng'}
-                )
-                try:
-                    result = r.json()
-                    st.write(result)  # Debug: Show full OCR response
-                    text = result['ParsedResults'][0]['ParsedText'] if 'ParsedResults' in result else "OCR failed."
-                except json.JSONDecodeError:
-                    st.error("OCR API rate limit reached or returned invalid JSON. Please wait a minute and try again.")
-                    st.stop()
-            except requests.exceptions.RequestException as e:
-                st.error("OCR request failed due to a network or API issue.")
-                st.stop()
-            return text
-
-# ----------- Step 2: Clean and Format the Chat Text -----------
+# ----------- Step: Clean and Format the Chat Text -----------
 def clean_chat_text(raw_text):
     lines = raw_text.split('\n')
     cleaned = [line.strip() for line in lines if line.strip() and len(line) > 2]
     return "\n".join(cleaned)
 
-# ----------- Step 3: Generate Response via GPT -----------
-def generate_response(chat_history, goal="flirty but respectful"):
+# ----------- Step: Generate Response via GPT -----------
+def generate_response(user_profile, match_profile, goal, chat_history):
     prompt = f"""
-You are an AI assistant helping a user engage in an ongoing dating app conversation. Based on the chat history below, suggest 1 best context-aware next line the user can send. Match the user's intent which is: {goal}.
+You are an AI assistant helping a user engage in an ongoing dating app conversation.
+
+User Details:
+Name: {user_profile['name']}, Age: {user_profile['age']}, Profession: {user_profile['profession']}, City: {user_profile['city']}, Looking for: {user_profile['looking_for']}
+
+Match Details:
+Name: {match_profile['name']}, Age: {match_profile['age']}, Profession: {match_profile['profession']}, City: {match_profile['city']}, Looking for: {match_profile['looking_for']}
+
+Chat Goal: {goal}
 
 Chat History:
 {chat_history}
 
-Suggestion:
+Based on all the context above, suggest the user's best next line:
 """
 
     response = client.chat.completions.create(
@@ -65,33 +45,64 @@ Suggestion:
 st.set_page_config(page_title="Dating Chat Assistant", layout="centered")
 st.title("\U0001F4AC Dating Chat Assistant")
 
-st.markdown("Upload a screenshot of your dating app chat and get the perfect next line!")
+st.markdown("Step 1: Tell us about yourself")
+with st.form("user_form"):
+    user_name = st.text_input("Your Name")
+    user_age = st.text_input("Your Age")
+    user_profession = st.text_input("Your Profession")
+    user_city = st.text_input("Your City")
+    user_goal = st.text_input("What are you looking for?")
+    submitted_user = st.form_submit_button("Continue")
 
-uploaded_file = st.file_uploader("Upload Chat Screenshot", type=["png", "jpg", "jpeg"])
+if submitted_user:
+    st.markdown("Step 2: Tell us about your match")
+    with st.form("match_form"):
+        match_name = st.text_input("Match's Name")
+        match_age = st.text_input("Match's Age")
+        match_profession = st.text_input("Match's Profession")
+        match_city = st.text_input("Match's City")
+        match_goal = st.text_input("What is your match looking for?")
+        submitted_match = st.form_submit_button("Continue")
 
-intent = st.selectbox("What is your goal for this chat?", [
-    "funny and warm",
-    "flirty but respectful",
-    "genuine and serious",
-    "casual and witty",
-    "friendly and polite"
-])
+    if submitted_match:
+        st.markdown("Step 3: What is your goal for this chat?")
+        intent = st.selectbox("Select chat goal", [
+            "funny and warm",
+            "flirty but respectful",
+            "genuine and serious",
+            "casual and witty",
+            "friendly and polite"
+        ])
 
-if uploaded_file is not None:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Chat Screenshot", use_column_width=True)
+        st.markdown("Step 4: Paste your ongoing chat")
+        chat_input = st.text_area("Paste the most recent messages (including your replies if any):", height=200)
 
-    with st.spinner("Extracting chat and generating suggestion..."):
-        raw_text = extract_text_from_screenshot(image)
-        formatted_text = clean_chat_text(raw_text)
+        if chat_input:
+            formatted_text = clean_chat_text(chat_input)
 
-        st.subheader("\U0001F4DD Extracted Chat History")
-        st.text(formatted_text)
+            st.subheader("\U0001F4DD Chat History")
+            st.text(formatted_text)
 
-        suggestion = generate_response(formatted_text, goal=intent)
+            if st.button("Generate Response"):
+                user_profile = {
+                    "name": user_name,
+                    "age": user_age,
+                    "profession": user_profession,
+                    "city": user_city,
+                    "looking_for": user_goal
+                }
+                match_profile = {
+                    "name": match_name,
+                    "age": match_age,
+                    "profession": match_profession,
+                    "city": match_city,
+                    "looking_for": match_goal
+                }
 
-        st.subheader("\U0001F4A1 Suggested Next Line")
-        st.markdown(f"**{suggestion.strip()}**")
+                suggestion = generate_response(user_profile, match_profile, intent, formatted_text)
+
+                st.subheader("\U0001F4A1 Suggested Next Line")
+                st.markdown(f"**{suggestion.strip()}**")
 
 st.markdown("---")
-st.caption("Made with ❤️ using GPT-4, Streamlit, and OCR.space")
+st.caption("Made with ❤️ using GPT-4 and Streamlit")
