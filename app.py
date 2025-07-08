@@ -12,7 +12,7 @@ def clean_chat_text(raw_text):
     return "\n".join(cleaned)
 
 # ----------- Step: Generate Response via GPT -----------
-def generate_response(user_profile, match_profile, goal, chat_history):
+def generate_response(user_profile, match_profile, goal, chat_history, model):
     prompt = f"""
 You are an AI assistant helping a user engage in an ongoing dating app conversation.
 
@@ -32,7 +32,7 @@ Based on all the context above, suggest the user's best next line:
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model=model,
             messages=[
                 {"role": "system", "content": f"You are a dating assistant who helps users craft {goal} replies in dating app conversations."},
                 {"role": "user", "content": prompt}
@@ -106,8 +106,10 @@ elif st.session_state.step == 3:
         "casual and witty",
         "friendly and polite"
     ])
+    model_choice = st.selectbox("Choose model", ["gpt-4o", "gpt-3.5-turbo"], index=0)
     if st.button("Continue"):
         st.session_state.intent = intent
+        st.session_state.model = model_choice
         st.session_state.step = 4
         st.rerun()
 
@@ -122,7 +124,8 @@ elif st.session_state.step == 4:
                 st.session_state.user_profile,
                 st.session_state.match_profile,
                 st.session_state.intent,
-                st.session_state.chat_history
+                st.session_state.chat_history,
+                st.session_state.model
             )
             if suggestion:
                 st.session_state.suggestion = suggestion
