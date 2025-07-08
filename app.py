@@ -1,16 +1,25 @@
 import streamlit as st
 import openai
-import pytesseract
+import requests
 from PIL import Image
 import tempfile
 
-# Load your OpenAI key
-openai.api_key = "YOUR_OPENAI_API_KEY"  # Replace with secure storage in production
+# Load your OpenAI key securely
+openai.api_key = st.secrets["OPENAI_API_KEY"]  # Store this in Streamlit secrets
+ocr_api_key = st.secrets["OCR_API_KEY"]        # Store your OCR.space API key here too
 
-# ----------- Step 1: Extract Text from Screenshot -----------
+# ----------- Step 1: Extract Text from Screenshot via OCR.space API -----------
 def extract_text_from_screenshot(image):
-    text = pytesseract.image_to_string(image)
-    return text
+    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
+        image.save(tmp_file.name)
+        with open(tmp_file.name, 'rb') as f:
+            r = requests.post(
+                'https://api.ocr.space/parse/image',
+                files={'filename': f},
+                data={'apikey': ocr_api_key, 'language': 'eng'}
+            )
+    result = r.json()
+    return result['ParsedResults'][0]['ParsedText'] if 'ParsedResults' in result else "OCR failed."
 
 # ----------- Step 2: Clean and Format the Chat Text -----------
 def clean_chat_text(raw_text):
@@ -43,7 +52,7 @@ Suggestion:
 
 # ----------- Streamlit App -----------
 st.set_page_config(page_title="Dating Chat Assistant", layout="centered")
-st.title("💬 Dating Chat Assistant")
+st.title("\U0001F4AC Dating Chat Assistant")
 
 st.markdown("Upload a screenshot of your dating app chat and get the perfect next line!")
 
@@ -65,13 +74,13 @@ if uploaded_file is not None:
         raw_text = extract_text_from_screenshot(image)
         formatted_text = clean_chat_text(raw_text)
 
-        st.subheader("📝 Extracted Chat History")
+        st.subheader("\U0001F4DD Extracted Chat History")
         st.text(formatted_text)
 
         suggestion = generate_response(formatted_text, goal=intent)
 
-        st.subheader("💡 Suggested Next Line")
+        st.subheader("\U0001F4A1 Suggested Next Line")
         st.markdown(f"**{suggestion.strip()}**")
 
 st.markdown("---")
-st.caption("Made with ❤️ using GPT-4 and Streamlit")
+st.caption("Made with ❤️ using GPT-4, Streamlit, and OCR.space")
