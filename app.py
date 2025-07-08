@@ -20,11 +20,15 @@ def extract_text_from_screenshot(image):
                     files={'filename': f},
                     data={'apikey': ocr_api_key, 'language': 'eng'}
                 )
-                result = r.json()
-                st.write(result)  # Debug: Show full OCR response
-                text = result['ParsedResults'][0]['ParsedText'] if 'ParsedResults' in result else "OCR failed."
-            except (json.JSONDecodeError, requests.exceptions.RequestException) as e:
-                st.error("OCR request failed or returned invalid JSON.")
+                try:
+                    result = r.json()
+                    st.write(result)  # Debug: Show full OCR response
+                    text = result['ParsedResults'][0]['ParsedText'] if 'ParsedResults' in result else "OCR failed."
+                except json.JSONDecodeError:
+                    st.error("OCR API rate limit reached or returned invalid JSON. Please wait a minute and try again.")
+                    st.stop()
+            except requests.exceptions.RequestException as e:
+                st.error("OCR request failed due to a network or API issue.")
                 st.stop()
             return text
 
@@ -48,7 +52,7 @@ Suggestion:
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": "You are a witty and helpful dating conversation assistant."},
+            {"role": "system", "content": f"You are a dating assistant who helps users craft {goal} replies in dating app conversations."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.7,
